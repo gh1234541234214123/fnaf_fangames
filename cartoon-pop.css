@@ -1,0 +1,176 @@
+@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Baloo+2:wght@400;700&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 50%, #ff9a9e 100%);
+  font-family: 'Baloo 2', cursive;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 3rem;
+  padding: 2rem;
+}
+
+.cartoon-title {
+  font-family: 'Fredoka One', cursive;
+  font-size: 4rem;
+  color: #fff;
+  text-shadow:
+    4px 4px 0 #ff6b6b,
+    6px 6px 0 #ffa500,
+    8px 8px 0 #ffd700;
+  transform: rotate(-2deg);
+  animation: wobble 3s ease-in-out infinite;
+}
+
+@keyframes wobble {
+  0%, 100% { transform: rotate(-2deg) scale(1); }
+  25% { transform: rotate(2deg) scale(1.05); }
+  50% { transform: rotate(-1deg) scale(1); }
+  75% { transform: rotate(3deg) scale(1.03); }
+}
+
+.cartoon-box {
+  background: #fff;
+  border: 5px solid #333;
+  border-radius: 30px 10px 30px 10px;
+  padding: 2rem 3rem;
+  box-shadow:
+    10px 10px 0 #333,
+    10px 10px 0 5px #ff6b6b;
+  font-size: 2rem;
+  font-family: 'Fredoka One', cursive;
+  color: #333;
+  transform: rotate(1deg);
+}
+
+.cartoon-box:nth-child(2) {
+  transform: rotate(-1deg);
+  box-shadow:
+    10px 10px 0 #333,
+    10px 10px 0 5px #4ecdc4;
+}
+
+.cartoon-button {
+  background: #ff6b6b;
+  border: 4px solid #333;
+  border-radius: 50px;
+  color: #fff;
+  padding: 1rem 3rem;
+  font-family: 'Fredoka One', cursive;
+  font-size: 1.5rem;
+  cursor: pointer;
+  box-shadow: 0 8px 0 #333;
+  transition: all 0.1s;
+  text-transform: uppercase;
+}
+
+.cartoon-button:hover {
+  transform: translateY(4px);
+  box-shadow: 0 4px 0 #333;
+}
+
+.cartoon-button:active {
+  transform: translateY(8px);
+  box-shadow: 0 0px 0 #333;
+}
+
+.cartoon-button.blue {
+  background: #4ecdc4;
+}
+
+.cartoon-button.yellow {
+  background: #ffd700;
+  color: #333;
+}
+
+.cartoon-button.purple {
+  background: #9b59b6;
+}
+
+.cartoon-grid {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.cartoon-card {
+  background: #fff;
+  border: 4px solid #333;
+  border-radius: 20px;
+  padding: 2rem;
+  max-width: 250px;
+  position: relative;
+  box-shadow: 8px 8px 0 #333;
+  transition: all 0.2s;
+}
+
+.cartoon-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 12px 12px 0 #333;
+}
+
+.cartoon-card::before {
+  content: "★";
+  position: absolute;
+  top: -15px;
+  left: -10px;
+  font-size: 2rem;
+  color: #ffd700;
+  transform: rotate(-20deg);
+}
+
+.cartoon-card h2 {
+  font-family: 'Fredoka One', cursive;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.cartoon-card p {
+  color: #666;
+  line-height: 1.6;
+}
+
+.cartoon-input {
+  border: 4px solid #333;
+  border-radius: 30px;
+  padding: 0.8rem 1.5rem;
+  font-family: 'Baloo 2', cursive;
+  font-size: 1.2rem;
+  outline: none;
+  background: #fff;
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.cartoon-input:focus {
+  border-color: #ff6b6b;
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.1), 0 0 0 4px rgba(255,107,107,0.3);
+}
+
+.cartoon-badge {
+  background: #ffd700;
+  border: 3px solid #333;
+  border-radius: 30px;
+  padding: 0.5rem 1.5rem;
+  font-family: 'Fredoka One', cursive;
+  font-size: 1rem;
+  display: inline-block;
+  box-shadow: 4px 4px 0 #333;
+  color: #333;
+}
+
+.cartoon-badge.pink {
+  background: #ff9ff3;
+}
+
+.cartoon-badge.green {
+  background: #1dd1a1;
+}

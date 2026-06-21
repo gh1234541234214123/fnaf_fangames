@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FANGAME VAULT</title>
+  <link rel="stylesheet" href="retro-pixel.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { gap: 1.5rem; padding: 1rem; padding-top: 5rem; }
+    a { text-decoration: none; color: inherit; }
+    textarea.pixel-input { resize: vertical; min-height: 80px; font-family: 'Press Start 2P', cursive; font-size: 0.5rem; }
+
+    .navbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: #1a1a2e; border-bottom: 4px solid #e94560;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.6rem 1.5rem; image-rendering: pixelated;
+    }
+    .navbar-brand {
+      font-family: 'Press Start 2P', cursive;
+      font-size: 0.9rem; color: #e94560; cursor: pointer;
+      text-shadow: 2px 2px 0 #16213e;
+    }
+    .navbar-brand span { color: #ffd700; }
+    .navbar-center {
+      display: flex; gap: 0.5rem;
+    }
+    .navbar-center .nav-btn { font-size: 0.45rem; padding: 0.3rem 0.6rem; }
+    .navbar-right { display: flex; align-items: center; gap: 1rem; }
+    .navbar-user { font-size: 0.5rem; color: #0ff; font-family: 'Press Start 2P', cursive; }
+    .nav-btn {
+      font-family: 'Press Start 2P', cursive; font-size: 0.5rem;
+      border: 2px solid #e94560; background: transparent; color: #e94560;
+      padding: 0.4rem 0.8rem; cursor: pointer; transition: all 0.05s;
+      image-rendering: pixelated;
+    }
+    .nav-btn:hover { background: #e94560; color: #1a1a2e; }
+    .nav-btn.active { background: #e94560; color: #1a1a2e; }
+
+    .view { display: none; width: 100%; max-width: 800px; margin: 0 auto; flex-direction: column; align-items: center; gap: 1.5rem; }
+    .view.active { display: flex; }
+
+    .pixel-box.full { width: 100%; }
+    .pixel-box.form-box { width: 100%; max-width: 500px; }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; font-family: 'Press Start 2P', cursive; font-size: 0.5rem; color: #aaa; margin-bottom: 0.4rem; }
+    .form-group .pixel-input { width: 100%; }
+    .form-group select.pixel-input {
+      appearance: none; -webkit-appearance: none;
+      background: #0f3460; color: #0ff; cursor: pointer;
+    }
+    .form-group select.pixel-input option { background: #16213e; color: #0ff; }
+
+    .game-card { cursor: pointer; }
+    .game-card h2 { font-size: 0.6rem; }
+    .game-card p { font-size: 0.45rem; }
+    .game-icon { width: 100%; height: auto; max-height: 100px; object-fit: contain; margin-bottom: 0.5rem; image-rendering: pixelated; }
+    .detail-icon { max-width: 100px; max-height: 100px; object-fit: contain; image-rendering: pixelated; border: 2px solid #0f3460; margin-right: 1rem; }
+    .game-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
+    .game-meta span {
+      font-family: 'Press Start 2P', cursive; font-size: 0.4rem;
+      background: #0f3460; color: #0ff; padding: 0.2rem 0.5rem;
+      border: 1px solid #16213e;
+    }
+
+    .review-item {
+      background: #16213e; border: 2px solid #0f3460;
+      padding: 1rem; margin-bottom: 0.8rem; width: 100%;
+    }
+    .review-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 0.5rem; font-size: 0.45rem; font-family: 'Press Start 2P', cursive;
+    }
+    .review-author { color: #0ff; }
+    .review-content { font-size: 0.5rem; color: #ccc; line-height: 1.8; font-family: 'Press Start 2P', cursive; }
+    .review-video { font-size: 0.4rem; margin-top: 0.5rem; }
+    .review-video a { color: #ffd700; text-decoration: underline; }
+    .review-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+    .review-actions button { font-size: 0.4rem; padding: 0.3rem 0.6rem; }
+
+    .btn-row { display: flex; gap: 0.8rem; flex-wrap: wrap; justify-content: center; }
+    .btn-sm { font-size: 0.5rem !important; padding: 0.4rem 1rem !important; }
+
+    .empty-state { font-family: 'Press Start 2P', cursive; font-size: 0.5rem; color: #555; text-align: center; padding: 2rem; }
+
+    .loading { font-family: 'Press Start 2P', cursive; font-size: 0.6rem; color: #0ff; animation: blink 1s infinite; }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+    .flash-msg {
+      position: fixed; top: 5rem; left: 50%; transform: translateX(-50%); z-index: 200;
+      font-family: 'Press Start 2P', cursive; font-size: 0.45rem;
+      padding: 0.6rem 1.5rem; border: 2px solid; display: none;
+    }
+    .flash-msg.error { background: #1a1a2e; border-color: #e94560; color: #e94560; display: block; }
+    .flash-msg.success { background: #1a1a2e; border-color: #00ff88; color: #00ff88; display: block; }
+
+    .delete-btn { background: #e94560 !important; border-bottom-color: #a02030 !important; border-right-color: #a02030 !important; }
+
+    .dev-item {
+      display: flex; justify-content: space-between; align-items: center;
+      background: #16213e; border: 2px solid #0f3460; padding: 0.6rem 1rem;
+      margin-bottom: 0.5rem; width: 100%;
+    }
+    .dev-item span { font-family: 'Press Start 2P', cursive; font-size: 0.45rem; color: #0ff; }
+
+    @media (max-width: 600px) {
+      .navbar-brand { font-size: 0.65rem; }
+      body { padding-top: 4rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="flash-msg" id="flash"></div>
+
+<nav class="navbar">
+  <div class="navbar-brand" onclick="navigate('games')">FANGAME <span>VAULT</span></div>
+  <div class="navbar-center">
+    <button class="nav-btn" onclick="navigate('games')">> JUEGOS</button>
+    <button class="nav-btn" id="nav-devs" style="display:none" onclick="navigate('developers')">> DESARROLLADORES</button>
+  </div>
+  <div class="navbar-right">
+    <span class="navbar-user" id="nav-user" style="display:none"></span>
+    <button class="nav-btn" id="nav-login" onclick="navigate('login')">> INICIAR</button>
+    <button class="nav-btn" id="nav-logout" style="display:none" onclick="handleLogout()">> SALIR</button>
+  </div>
+</nav>
+
+<!-- LOGIN VIEW -->
+<div id="view-login" class="view">
+  <div class="pixel-box form-box">
+    <div class="pixel-title" style="font-size:1.2rem;margin-bottom:1rem">
+      ╔══════════╗<br>
+      ║ INGRESAR ║<br>
+      ╚══════════╝
+    </div>
+    <div class="form-group">
+      <label>> CORREO</label>
+      <input class="pixel-input" id="login-email" type="email" placeholder="CORREO">
+    </div>
+    <div class="form-group">
+      <label>> CONTRASEÑA</label>
+      <input class="pixel-input" id="login-password" type="password" placeholder="CONTRASEÑA">
+    </div>
+    <button class="pixel-button gold" id="login-btn" style="width:100%">> ENTRAR</button>
+    <p id="login-err" style="font-size:0.45rem;color:#e94560;margin-top:0.8rem;display:none;font-family:'Press Start 2P',cursive"></p>
+  </div>
+</div>
+
+<!-- GAMES LIST VIEW -->
+<div id="view-games" class="view">
+  <div class="pixel-title" style="font-size:1.4rem">
+    ╔════════════════╗<br>
+    ║  BIBLIOTECA    ║<br>
+    ╚════════════════╝
+  </div>
+  <div style="width:100%;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem">
+    <div style="font-family:'Press Start 2P',cursive;font-size:0.45rem;color:#555">
+      <span id="games-count">0</span> ENTRADAS
+    </div>
+    <button class="pixel-button gold btn-sm" id="btn-add-game" style="display:none" onclick="navigate('game/new')">> AÑADIR</button>
+  </div>
+  <hr class="pixel-hr">
+  <div id="games-list" class="pixel-grid" style="width:100%"></div>
+</div>
+
+<!-- GAME DETAIL VIEW -->
+<div id="view-game" class="view">
+  <div style="width:100%">
+    <button class="pixel-button btn-sm" onclick="navigate('games')"> < VOLVER</button>
+  </div>
+  <div id="game-detail" style="width:100%"></div>
+</div>
+
+<!-- NEW GAME VIEW -->
+<div id="view-game-new" class="view">
+  <div class="pixel-box form-box">
+    <div class="pixel-title" style="font-size:1rem;margin-bottom:1rem">
+      ╔══════════════╗<br>
+      ║ NUEVO JUEGO  ║<br>
+      ╚══════════════╝
+    </div>
+    <div class="form-group">
+      <label>> NOMBRE *</label>
+      <input class="pixel-input" id="new-nombre" placeholder="NOMBRE DEL JUEGO">
+    </div>
+    <div class="form-group">
+      <label>> URL DEL ICONO</label>
+      <input class="pixel-input" id="new-icon" type="url" placeholder="https://ejemplo.com/icono.png">
+    </div>
+    <div class="form-group">
+      <label>> DESARROLLADOR *</label>
+      <select class="pixel-input" id="new-dev"></select>
+      <div style="font-size:0.4rem;color:#555;margin-top:0.3rem;font-family:'Press Start 2P',cursive">¿SIN DESARROLLADOR? <a href="#" onclick="navigate('developers');return false" style="color:#0ff;text-decoration:underline">AÑADE UNO</a></div>
+    </div>
+    <div class="btn-row">
+      <button class="pixel-button gold" id="save-game-btn">> GUARDAR</button>
+      <button class="pixel-button" onclick="navigate('games')">> CANCELAR</button>
+    </div>
+    <p id="game-form-err" style="font-size:0.45rem;color:#e94560;margin-top:0.8rem;display:none;font-family:'Press Start 2P',cursive"></p>
+  </div>
+</div>
+
+<!-- EDIT GAME VIEW -->
+<div id="view-game-edit" class="view">
+  <div class="pixel-box form-box">
+    <div class="pixel-title" style="font-size:1rem;margin-bottom:1rem">
+      ╔══════════════╗<br>
+      ║ EDITAR JUEGO ║<br>
+      ╚══════════════╝
+    </div>
+    <div class="form-group">
+      <label>> NOMBRE *</label>
+      <input class="pixel-input" id="edit-nombre" placeholder="NOMBRE DEL JUEGO">
+    </div>
+    <div class="form-group">
+      <label>> URL DEL ICONO</label>
+      <input class="pixel-input" id="edit-icon" type="url" placeholder="https://ejemplo.com/icono.png">
+    </div>
+    <div class="form-group">
+      <label>> DESARROLLADOR</label>
+      <select class="pixel-input" id="edit-dev"></select>
+    </div>
+    <div class="btn-row">
+      <button class="pixel-button gold" id="update-game-btn">> GUARDAR</button>
+      <button class="pixel-button delete-btn" id="delete-game-btn" style="display:none">> ELIMINAR</button>
+      <button class="pixel-button" onclick="navigate('games')">> CANCELAR</button>
+    </div>
+    <p id="edit-form-err" style="font-size:0.45rem;color:#e94560;margin-top:0.8rem;display:none;font-family:'Press Start 2P',cursive"></p>
+  </div>
+</div>
+
+<!-- REVIEW FORM VIEW -->
+<div id="view-review" class="view">
+  <div class="pixel-box form-box">
+    <div class="pixel-title" id="review-title" style="font-size:0.9rem;margin-bottom:1rem">
+      ╔══════════════╗<br>
+      ║ RESEÑA       ║<br>
+      ╚══════════════╝
+    </div>
+    <p id="review-game-name" style="font-family:'Press Start 2P',cursive;font-size:0.5rem;color:#0ff;margin-bottom:1rem"></p>
+    <div class="form-group">
+      <label>> PUNTUACIÓN (1-10)</label>
+      <input class="pixel-input" id="review-score" type="number" min="1" max="10" placeholder="7">
+    </div>
+    <div class="form-group">
+      <label>> CONTENIDO *</label>
+      <textarea class="pixel-input" id="review-content" placeholder="TUS PENSAMIENTOS..."></textarea>
+    </div>
+    <div class="form-group">
+      <label>> URL DEL VIDEO</label>
+      <input class="pixel-input" id="review-video" type="url" placeholder="https://youtube.com/watch?v=...">
+    </div>
+    <div class="btn-row">
+      <button class="pixel-button gold" id="save-review-btn">> ENVIAR</button>
+      <button class="pixel-button" id="cancel-review-btn">> CANCELAR</button>
+    </div>
+    <p id="review-form-err" style="font-size:0.45rem;color:#e94560;margin-top:0.8rem;display:none;font-family:'Press Start 2P',cursive"></p>
+  </div>
+</div>
+
+<!-- DEVELOPERS VIEW -->
+<div id="view-developers" class="view">
+  <div class="pixel-title" style="font-size:1.2rem">
+    ╔════════════════╗<br>
+    ║ DESARROLLADORES║<br>
+    ╚════════════════╝
+  </div>
+  <div class="pixel-box form-box">
+    <div class="form-group">
+      <label>> NOMBRE *</label>
+      <input class="pixel-input" id="dev-nombre" placeholder="NOMBRE DEL ESTUDIO">
+    </div>
+    <button class="pixel-button gold" id="add-dev-btn" style="width:100%">> AÑADIR</button>
+    <p id="dev-form-err" style="font-size:0.45rem;color:#e94560;margin-top:0.8rem;display:none;font-family:'Press Start 2P',cursive"></p>
+  </div>
+  <hr class="pixel-hr">
+  <div id="dev-list" style="width:100%"></div>
+</div>
+
+<script>
+// ==================== CONFIG ====================
+const SUPABASE_URL = 'https://pnsypgbbwfnufjxlgxoz.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_ZhUYyRuH5pPwXFhVl2eV1g_8tyPqGix';
+const { createClient } = supabase;
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ==================== STATE ====================
+let currentUser = null;
+let editGameId = null;
+let reviewGameId = null;
+let editReviewId = null;
+
+// ==================== UTILS ====================
+const $ = id => document.getElementById(id);
+const show = el => { if (el) el.style.display = ''; };
+const hide = el => { if (el) el.style.display = 'none'; };
+
+function flash(msg, type) {
+  const el = $('flash');
+  el.textContent = '> ' + msg;
+  el.className = 'flash-msg ' + type;
+  clearTimeout(el._timer);
+  el._timer = setTimeout(() => el.className = 'flash-msg', 4000);
+}
+
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const view = $(id);
+  if (view) view.classList.add('active');
+}
+
+// ==================== AUTH ====================
+async function checkSession() {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (session) {
+    currentUser = session.user;
+    updateNavbar();
+    return true;
+  }
+  currentUser = null;
+  updateNavbar();
+  return false;
+}
+
+function updateNavbar() {
+  if (currentUser) {
+    hide($('nav-login')); show($('nav-logout')); show($('nav-devs'));
+    $('nav-user').textContent = currentUser.email; show($('nav-user'));
+    show($('btn-add-game'));
+  } else {
+    show($('nav-login')); hide($('nav-logout')); hide($('nav-devs'));
+    $('nav-user').textContent = ''; hide($('nav-user'));
+    hide($('btn-add-game'));
+  }
+}
+
+$('login-btn').addEventListener('click', async () => {
+  const email = $('login-email').value.trim();
+  const password = $('login-password').value;
+  const err = $('login-err');
+  if (!email || !password) { err.textContent = '> COMPLETA TODOS LOS CAMPOS'; show(err); return; }
+  hide(err);
+  $('login-btn').textContent = '> ...'; $('login-btn').disabled = true;
+  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  $('login-btn').textContent = '> ENTRAR'; $('login-btn').disabled = false;
+  if (error) { err.textContent = '> ' + error.message; show(err); return; }
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (session) {
+    currentUser = session.user; updateNavbar();
+    flash('ACCESO CONCEDIDO', 'success'); navigate('games');
+  }
+});
+
+async function handleLogout() {
+  await supabaseClient.auth.signOut();
+  currentUser = null; updateNavbar();
+  flash('SESIÓN CERRADA', 'success'); navigate('login');
+}
+
+// ==================== ROUTER ====================
+function navigate(hash) { window.location.hash = hash; }
+
+window.addEventListener('hashchange', handleRoute);
+window.addEventListener('load', async () => {
+  await checkSession();
+  if (!window.location.hash || window.location.hash === '#') {
+    navigate(currentUser ? 'games' : 'login');
+  } else {
+    handleRoute();
+  }
+});
+
+async function handleRoute() {
+  await checkSession();
+  const hash = window.location.hash.replace(/^#/, '') || 'login';
+
+  if (hash === 'login') { showView('view-login'); return; }
+
+  if (hash === 'developers') {
+    if (!currentUser) { flash('DEBES INICIAR SESIÓN', 'error'); navigate('login'); return; }
+    await loadDevelopers();
+    showView('view-developers');
+    return;
+  }
+
+  if (hash === 'game/new') {
+    if (!currentUser) { flash('DEBES INICIAR SESIÓN', 'error'); navigate('login'); return; }
+    await populateDevDropdown('new-dev');
+    resetNewGameForm();
+    showView('view-game-new');
+    return;
+  }
+
+  const reviewEditMatch = hash.match(/^game\/(\d+)\/review\/(\d+)$/);
+  if (reviewEditMatch) {
+    if (!currentUser) { flash('DEBES INICIAR SESIÓN', 'error'); navigate('login'); return; }
+    await loadReviewForm(reviewEditMatch[1], reviewEditMatch[2]);
+    showView('view-review');
+    return;
+  }
+
+  const reviewNewMatch = hash.match(/^game\/(\d+)\/review$/);
+  if (reviewNewMatch) {
+    if (!currentUser) { flash('DEBES INICIAR SESIÓN', 'error'); navigate('login'); return; }
+    await loadReviewForm(reviewNewMatch[1], null);
+    showView('view-review');
+    return;
+  }
+
+  const editMatch = hash.match(/^game\/(\d+)\/edit$/);
+  if (editMatch) {
+    if (!currentUser) { flash('DEBES INICIAR SESIÓN', 'error'); navigate('login'); return; }
+    await loadEditGame(editMatch[1]);
+    showView('view-game-edit');
+    return;
+  }
+
+  const detailMatch = hash.match(/^game\/(\d+)$/);
+  if (detailMatch) {
+    await loadGameDetail(detailMatch[1]);
+    showView('view-game');
+    return;
+  }
+
+  if (hash === 'games' || hash === '') {
+    await loadGamesList();
+    showView('view-games');
+    return;
+  }
+
+  navigate('games');
+}
+
+// ==================== DEVELOPERS ====================
+async function loadDevelopers() {
+  const container = $('dev-list');
+  container.innerHTML = '<div class="loading">CARGANDO...</div>';
+  const { data: devs, error } = await supabaseClient
+    .from('desarrolladores')
+    .select('*')
+    .order('id', { ascending: true });
+  if (error) { container.innerHTML = '<div class="empty-state">> ERROR: ' + error.message + '</div>'; return; }
+  if (!devs || devs.length === 0) {
+    container.innerHTML = '<div class="empty-state">> NO HAY DESARROLLADORES AÚN _</div>';
+    return;
+  }
+  container.innerHTML = devs.map(d =>
+    `<div class="dev-item"><span>> ${d.nombre}</span></div>`
+  ).join('');
+}
+
+$('add-dev-btn').addEventListener('click', async () => {
+  const nombre = $('dev-nombre').value.trim();
+  const err = $('dev-form-err');
+  if (!nombre) { err.textContent = '> EL NOMBRE ES REQUERIDO'; show(err); return; }
+  hide(err);
+  $('add-dev-btn').textContent = '> ...'; $('add-dev-btn').disabled = true;
+  const { error } = await supabaseClient.from('desarrolladores').insert({ nombre });
+  $('add-dev-btn').textContent = '> AÑADIR'; $('add-dev-btn').disabled = false;
+  if (error) { err.textContent = '> ' + error.message; show(err); return; }
+  $('dev-nombre').value = '';
+  flash('DESARROLLADOR AÑADIDO', 'success');
+  await loadDevelopers();
+});
+
+async function populateDevDropdown(selectId) {
+  const sel = $(selectId);
+  sel.innerHTML = '<option value="">— SELECCIONA —</option>';
+  const { data: devs } = await supabaseClient
+    .from('desarrolladores')
+    .select('id, nombre')
+    .order('id', { ascending: true });
+  if (devs) devs.forEach(d => {
+    const opt = document.createElement('option');
+    opt.value = d.id; opt.textContent = d.nombre;
+    sel.appendChild(opt);
+  });
+}
+
+// ==================== GAMES LIST ====================
+async function loadGamesList() {
+  const container = $('games-list');
+  container.innerHTML = '<div class="loading">CARGANDO...</div>';
+  const { data: games, error } = await supabaseClient
+    .from('fangame')
+    .select('*, desarrolladores(nombre)')
+    .order('id', { ascending: false });
+  if (error) { container.innerHTML = '<div class="empty-state">> ERROR: ' + error.message + '</div>'; return; }
+  $('games-count').textContent = games ? games.length : 0;
+  if (!games || games.length === 0) {
+    container.innerHTML = '<div class="empty-state">> NO HAY JUEGOS _<br><br><span style="color:#555">AÑADE EL PRIMERO</span></div>';
+    return;
+  }
+  container.innerHTML = games.map(g => {
+    const devName = g.desarrolladores?.nombre || '?';
+    return `
+      <div class="pixel-card game-card" onclick="navigate('game/${g.id}')" style="cursor:pointer;flex:1;min-width:200px;max-width:300px">
+        ${g.url_icon ? `<img class="game-icon" src="${g.url_icon}" alt="${g.nombre}" onerror="this.style.display='none'">` : ''}
+        <h2>${g.nombre}</h2>
+        <p>${devName}</p>
+        <div class="game-meta">
+          <span>> ID: ${g.id}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ==================== GAME DETAIL ====================
+async function loadGameDetail(gameId) {
+  const container = $('game-detail');
+  container.innerHTML = '<div class="loading">CARGANDO...</div>';
+
+  const { data: game, error } = await supabaseClient
+    .from('fangame')
+    .select('*, desarrolladores(nombre)')
+    .eq('id', gameId)
+    .single();
+
+  if (error || !game) { container.innerHTML = '<div class="empty-state">> JUEGO NO ENCONTRADO</div>'; return; }
+
+  const { data: reviews, error: revErr } = await supabaseClient
+    .from('review')
+    .select('*, Escritores(nombre)')
+    .eq('id_fangame', gameId)
+    .order('id', { ascending: false });
+
+  const reviewList = revErr ? [] : (reviews || []);
+  const userReview = currentUser ? reviewList.find(r => r.id_escritor === currentUser.id) : null;
+  const otherReviews = reviewList.filter(r => !currentUser || r.id_escritor !== currentUser.id);
+
+  let html = `
+    <div class="pixel-box full">
+      <div style="display:flex;align-items:flex-start;gap:1rem;flex-wrap:wrap">
+        ${game.url_icon ? `<img class="detail-icon" src="${game.url_icon}" alt="${game.nombre}" onerror="this.style.display='none'">` : ''}
+        <div style="flex:1;min-width:200px">
+          <h2 style="font-family:'Press Start 2P',cursive;font-size:0.8rem;color:#e94560;margin-bottom:0.5rem">${game.nombre}</h2>
+          <p style="font-size:0.5rem;color:#aaa;font-family:'Press Start 2P',cursive">POR ${game.desarrolladores?.nombre || 'DESCONOCIDO'}</p>
+        </div>
+      </div>
+      <hr class="pixel-hr" style="margin:1rem 0">
+      <div class="game-meta"><span>> ID: ${game.id}</span></div>
+      <div class="btn-row" style="margin-top:1.5rem">
+        ${currentUser ? `
+          ${userReview ? `<button class="pixel-button gold btn-sm" onclick="navigate('game/${game.id}/review/${userReview.id}')">> EDITAR</button>`
+                       : `<button class="pixel-button gold btn-sm" onclick="navigate('game/${game.id}/review')">> RESEÑAR</button>`}
+          <button class="pixel-button blue btn-sm" onclick="navigate('game/${game.id}/edit')">> EDITAR</button>
+        ` : `<button class="pixel-button btn-sm" onclick="navigate('login')">> ENTRAR PARA RESEÑAR</button>`}
+      </div>
+    </div>
+  `;
+
+  if (userReview) {
+    html += `
+      <div class="pixel-box green full" style="margin-top:0.5rem">
+        <div style="font-family:'Press Start 2P',cursive;font-size:0.45rem;color:#00ff88;margin-bottom:0.5rem">> TU RESEÑA</div>
+        <div class="review-item" style="border-color:#00ff88;background:#0a1a0a">
+          <div class="review-header"><span class="review-author">TÚ</span>${userReview.score ? `<span class="review-rating" style="color:#ffd700">${userReview.score}/10</span>` : ''}</div>
+          ${userReview.contenido ? `<div class="review-content">${userReview.contenido}</div>` : ''}
+          ${userReview.url_video ? `<div class="review-video">> VIDEO: <a href="${userReview.url_video}" target="_blank">${userReview.url_video}</a></div>` : ''}
+          <div class="review-actions">
+            <button class="pixel-button btn-sm" onclick="navigate('game/${game.id}/review/${userReview.id}')">> EDITAR</button>
+            <button class="pixel-button btn-sm delete-btn" onclick="deleteReview('${userReview.id}','${game.id}')">> ELIMINAR</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  if (otherReviews.length > 0) {
+    html += `<hr class="pixel-hr" style="margin-top:1rem">
+      <div style="width:100%;font-family:'Press Start 2P',cursive;font-size:0.5rem;color:#aaa;margin-bottom:0.5rem">> RESEÑAS</div>`;
+    html += otherReviews.map(r => `
+      <div class="review-item">
+        <div class="review-header"><span class="review-author">${r.Escritores?.nombre || 'DESCONOCIDO'}</span>${r.score ? `<span style="color:#ffd700;font-family:'Press Start 2P',cursive;font-size:0.45rem">${r.score}/10</span>` : ''}</div>
+        ${r.contenido ? `<div class="review-content">${r.contenido}</div>` : ''}
+        ${r.url_video ? `<div class="review-video">> VIDEO: <a href="${r.url_video}" target="_blank">${r.url_video}</a></div>` : ''}
+      </div>
+    `).join('');
+  } else if (!userReview) {
+    html += `<div class="empty-state">> NO HAY RESEÑAS AÚN _</div>`;
+  }
+
+  container.innerHTML = html;
+}
+
+// ==================== NEW GAME ====================
+function resetNewGameForm() {
+  $('new-nombre').value = '';
+  $('new-icon').value = '';
+  if ($('new-dev')) $('new-dev').value = '';
+  hide($('game-form-err'));
+}
+
+$('save-game-btn').addEventListener('click', async () => {
+  const nombre = $('new-nombre').value.trim();
+  const url_icon = $('new-icon').value.trim() || null;
+  const desarrollador_id = parseInt($('new-dev').value, 10);
+  const err = $('game-form-err');
+  if (!nombre) { err.textContent = '> EL NOMBRE ES REQUERIDO'; show(err); return; }
+  if (!desarrollador_id) { err.textContent = '> SELECCIONA UN DESARROLLADOR'; show(err); return; }
+  hide(err);
+  $('save-game-btn').textContent = '> ...'; $('save-game-btn').disabled = true;
+  const { error } = await supabaseClient.from('fangame').insert({ nombre, url_icon, desarrollador_id });
+  $('save-game-btn').textContent = '> GUARDAR'; $('save-game-btn').disabled = false;
+  if (error) { err.textContent = '> ' + error.message; show(err); return; }
+  flash('JUEGO AÑADIDO', 'success'); navigate('games');
+});
+
+// ==================== EDIT GAME ====================
+async function loadEditGame(gameId) {
+  editGameId = gameId;
+  hide($('edit-form-err'));
+  const { data: game, error } = await supabaseClient
+    .from('fangame').select('*').eq('id', gameId).single();
+  if (error || !game) { flash('JUEGO NO ENCONTRADO', 'error'); navigate('games'); return; }
+  await populateDevDropdown('edit-dev');
+  $('edit-nombre').value = game.nombre || '';
+  $('edit-icon').value = game.url_icon || '';
+  $('edit-dev').value = game.desarrollador_id || '';
+  show($('delete-game-btn'));
+}
+
+$('update-game-btn').addEventListener('click', async () => {
+  if (!editGameId) return;
+  const nombre = $('edit-nombre').value.trim();
+  const url_icon = $('edit-icon').value.trim() || null;
+  const desarrollador_id = parseInt($('edit-dev').value, 10);
+  const err = $('edit-form-err');
+  if (!nombre) { err.textContent = '> EL NOMBRE ES REQUERIDO'; show(err); return; }
+  if (!desarrollador_id) { err.textContent = '> SELECCIONA UN DESARROLLADOR'; show(err); return; }
+  hide(err);
+  $('update-game-btn').textContent = '> ...'; $('update-game-btn').disabled = true;
+  const { error } = await supabaseClient.from('fangame')
+    .update({ nombre, url_icon, desarrollador_id })
+    .eq('id', editGameId);
+  $('update-game-btn').textContent = '> GUARDAR'; $('update-game-btn').disabled = false;
+  if (error) { err.textContent = '> ' + error.message; show(err); return; }
+  flash('JUEGO ACTUALIZADO', 'success'); navigate('game/' + editGameId);
+});
+
+$('delete-game-btn').addEventListener('click', async () => {
+  if (!editGameId) return;
+  if (!confirm('¿ELIMINAR ESTE JUEGO? ESTO NO SE PUEDE DESHACER.')) return;
+  const { error } = await supabaseClient.from('fangame').delete().eq('id', editGameId);
+  if (error) { flash('ERROR AL ELIMINAR: ' + error.message, 'error'); return; }
+  flash('JUEGO ELIMINADO', 'success'); editGameId = null; navigate('games');
+});
+
+// ==================== REVIEW FORM ====================
+async function loadReviewForm(gameId, reviewId) {
+  reviewGameId = gameId; editReviewId = reviewId;
+  hide($('review-form-err'));
+  const { data: game } = await supabaseClient
+    .from('fangame').select('nombre').eq('id', gameId).single();
+  $('review-game-name').textContent = '> ' + (game ? game.nombre : 'DESCONOCIDO');
+
+  if (reviewId) {
+    $('review-title').innerHTML = '╔══════════════╗<br>║ EDITAR RESEÑA║<br>╚══════════════╝';
+    $('save-review-btn').textContent = '> GUARDAR';
+    const { data: review } = await supabaseClient
+      .from('review').select('*').eq('id', reviewId).single();
+    if (review) {
+      $('review-score').value = review.score || '';
+      $('review-content').value = review.contenido || '';
+      $('review-video').value = review.url_video || '';
+    }
+  } else {
+    $('review-title').innerHTML = '╔══════════════╗<br>║ RESEÑA       ║<br>╚══════════════╝';
+    $('save-review-btn').textContent = '> ENVIAR';
+    $('review-score').value = ''; $('review-content').value = ''; $('review-video').value = '';
+  }
+}
+
+$('cancel-review-btn').addEventListener('click', () => {
+  if (reviewGameId) navigate('game/' + reviewGameId); else navigate('games');
+});
+
+$('save-review-btn').addEventListener('click', async () => {
+  const score = parseInt($('review-score').value, 10) || null;
+  const contenido = $('review-content').value.trim();
+  const url_video = $('review-video').value.trim();
+  const err = $('review-form-err');
+  if (score !== null && (score < 1 || score > 10)) { err.textContent = '> LA PUNTUACIÓN DEBE SER 1-10'; show(err); return; }
+  if (!contenido) { err.textContent = '> EL CONTENIDO ES REQUERIDO'; show(err); return; }
+  hide(err);
+  $('save-review-btn').textContent = '> ...'; $('save-review-btn').disabled = true;
+
+  if (editReviewId) {
+    const { error } = await supabaseClient.from('review')
+      .update({ score, contenido, url_video: url_video || null })
+      .eq('id', editReviewId);
+    $('save-review-btn').textContent = '> GUARDAR'; $('save-review-btn').disabled = false;
+    if (error) { err.textContent = '> ' + error.message; show(err); return; }
+    flash('RESEÑA ACTUALIZADA', 'success'); navigate('game/' + reviewGameId);
+  } else {
+    const { error } = await supabaseClient.from('review')
+      .insert({ id_fangame: parseInt(reviewGameId), id_escritor: currentUser.id, score, contenido, url_video: url_video || null });
+    $('save-review-btn').textContent = '> ENVIAR'; $('save-review-btn').disabled = false;
+    if (error) { err.textContent = '> ' + error.message; show(err); return; }
+    flash('RESEÑA ENVIADA', 'success'); navigate('game/' + reviewGameId);
+  }
+});
+
+// ==================== DELETE REVIEW ====================
+async function deleteReview(reviewId, gameId) {
+  if (!confirm('¿ELIMINAR ESTA RESEÑA?')) return;
+  const { error } = await supabaseClient.from('review').delete().eq('id', reviewId);
+  if (error) { flash('ERROR AL ELIMINAR: ' + error.message, 'error'); return; }
+  flash('RESEÑA ELIMINADA', 'success'); navigate('game/' + gameId);
+}
+</script>
+</body>
+</html>

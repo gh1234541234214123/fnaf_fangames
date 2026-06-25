@@ -97,6 +97,17 @@
     .flash-msg.success { background: #1a1a2e; border-color: #00ff88; color: #00ff88; display: block; }
 
     .delete-btn { background: #e94560 !important; border-bottom-color: #a02030 !important; border-right-color: #a02030 !important; }
+    .ban-btn { background: #f39c12 !important; border-bottom-color: #b7770a !important; border-right-color: #b7770a !important; color: #1a1a2e !important; }
+    .unban-btn { background: #00ff88 !important; border-bottom-color: #00aa55 !important; border-right-color: #00aa55 !important; color: #1a1a2e !important; }
+    .admin-user {
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;
+      background: #16213e; border: 2px solid #0f3460; padding: 0.6rem 1rem; margin-bottom: 0.5rem;
+    }
+    .admin-user-info { font-family: 'Press Start 2P', cursive; font-size: 0.4rem; flex: 1; min-width: 150px; }
+    .admin-user-info .email { color: #0ff; }
+    .admin-user-info .meta { color: #555; margin-top: 0.2rem; }
+    .admin-user-info .banned { color: #e94560; }
+    .admin-user-actions { display: flex; gap: 0.3rem; flex-wrap: wrap; }
 
     .dev-item {
       display: flex; justify-content: space-between; align-items: center;
@@ -120,6 +131,7 @@
   <div class="navbar-center">
     <button class="nav-btn" onclick="navigate('games')">> JUEGOS</button>
     <button class="nav-btn" id="nav-devs" style="display:none" onclick="navigate('developers')">> DESARROLLADORES</button>
+    <button class="nav-btn" id="nav-admin" style="display:none" onclick="navigate('admin')">> ADMIN</button>
   </div>
   <div class="navbar-right">
     <span class="navbar-user" id="nav-user" style="display:none"></span>
@@ -280,12 +292,49 @@
   <div id="dev-list" style="width:100%"></div>
 </div>
 
+<!-- ADMIN VIEW -->
+<div id="view-admin" class="view">
+  <div class="pixel-title" style="font-size:1.2rem">
+    ╔══════════╗<br>
+    ║  ADMIN   ║<br>
+    ╚══════════╝
+  </div>
+
+  <div class="pixel-box form-box">
+    <div style="font-family:'Press Start 2P',cursive;font-size:0.5rem;color:#0ff;margin-bottom:1rem">> AÑADIR USUARIO</div>
+    <div class="form-group">
+      <label>> CORREO *</label>
+      <input class="pixel-input" id="admin-email" type="email" placeholder="CORREO">
+    </div>
+    <div class="form-group">
+      <label>> CONTRASEÑA *</label>
+      <input class="pixel-input" id="admin-pass" type="password" placeholder="CONTRASEÑA">
+    </div>
+    <button class="pixel-button gold" id="admin-add-btn" style="width:100%">> AÑADIR</button>
+    <p id="admin-add-err" style="font-size:0.45rem;color:#e94560;margin-top:0.8rem;display:none;font-family:'Press Start 2P',cursive"></p>
+  </div>
+
+  <hr class="pixel-hr">
+
+  <div class="pixel-box full">
+    <div style="font-family:'Press Start 2P',cursive;font-size:0.5rem;color:#0ff;margin-bottom:1rem">> USUARIOS</div>
+    <div id="admin-users" style="width:100%">
+      <div class="loading">CARGANDO...</div>
+    </div>
+  </div>
+</div>
+
 <script>
 // ==================== CONFIG ====================
 const SUPABASE_URL = 'https://pnsypgbbwfnufjxlgxoz.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_ZhUYyRuH5pPwXFhVl2eV1g_8tyPqGix';
+const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBuc3lwZ2Jid2ZudWZqeGxneG96Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MjAzOTQ0NSwiZXhwIjoyMDk3NjE1NDQ1fQ.i2SDherLbb5z7IcyMc8wb_aJCDIBlJxWl-vFcypLP8o';
+const ADMIN_EMAIL = ''; // set your admin email here to restrict admin panel
 const { createClient } = supabase;
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+  auth: { autoRefreshToken: false, persistSession: false }
+});
 
 // ==================== STATE ====================
 let currentUser = null;
@@ -330,10 +379,11 @@ function updateNavbar() {
     hide($('nav-login')); show($('nav-logout')); show($('nav-devs'));
     $('nav-user').textContent = currentUser.email; show($('nav-user'));
     show($('btn-add-game'));
+    if (isAdmin()) show($('nav-admin')); else hide($('nav-admin'));
   } else {
     show($('nav-login')); hide($('nav-logout')); hide($('nav-devs'));
     $('nav-user').textContent = ''; hide($('nav-user'));
-    hide($('btn-add-game'));
+    hide($('btn-add-game')); hide($('nav-admin'));
   }
 }
 
@@ -383,6 +433,14 @@ async function handleRoute() {
     if (!currentUser) { flash('DEBES INICIAR SESIÓN', 'error'); navigate('login'); return; }
     await loadDevelopers();
     showView('view-developers');
+    return;
+  }
+
+  if (hash === 'admin') {
+    if (!currentUser) { flash('DEBES INICIAR SESIÓN', 'error'); navigate('login'); return; }
+    if (!isAdmin()) { flash('ACCESO DENEGADO', 'error'); navigate('games'); return; }
+    await loadAdminUsers();
+    showView('view-admin');
     return;
   }
 
@@ -478,6 +536,79 @@ async function populateDevDropdown(selectId) {
     opt.value = d.id; opt.textContent = d.nombre;
     sel.appendChild(opt);
   });
+}
+
+function isAdmin() {
+  return currentUser && (!ADMIN_EMAIL || currentUser.email === ADMIN_EMAIL);
+}
+
+// ==================== ADMIN ====================
+async function loadAdminUsers() {
+  const container = $('admin-users');
+  container.innerHTML = '<div class="loading">CARGANDO...</div>';
+  const { data, error } = await supabaseAdmin.auth.admin.listUsers();
+  if (error) { container.innerHTML = '<div class="empty-state">> ERROR: ' + error.message + '</div>'; return; }
+  if (!data || !data.users || data.users.length === 0) {
+    container.innerHTML = '<div class="empty-state">> NO HAY USUARIOS</div>';
+    return;
+  }
+  container.innerHTML = data.users.map(u => {
+    const banned = u.banned_until && new Date(u.banned_until) > new Date();
+    return `
+      <div class="admin-user">
+        <div class="admin-user-info">
+          <div class="email">${u.email || 'SIN CORREO'}</div>
+          <div class="meta">ID: ${u.id.substring(0, 8)}... | CREADO: ${new Date(u.created_at).toLocaleDateString()}</div>
+          ${banned ? '<div class="meta banned">> BANEADO HASTA ' + new Date(u.banned_until).toLocaleDateString() + '</div>' : ''}
+        </div>
+        <div class="admin-user-actions">
+          ${banned
+            ? `<button class="pixel-button btn-sm unban-btn" onclick="adminUnban('${u.id}')">> DESBAN</button>`
+            : `<button class="pixel-button btn-sm ban-btn" onclick="adminBan('${u.id}')">> BAN</button>`}
+          <button class="pixel-button btn-sm delete-btn" onclick="adminDelete('${u.id}','${u.email}')">> X</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+$('admin-add-btn').addEventListener('click', async () => {
+  const email = $('admin-email').value.trim();
+  const password = $('admin-pass').value;
+  const err = $('admin-add-err');
+  if (!email || !password) { err.textContent = '> COMPLETA TODOS LOS CAMPOS'; show(err); return; }
+  if (password.length < 6) { err.textContent = '> CONTRASEÑA DEBE TENER 6+ CARACTERES'; show(err); return; }
+  hide(err);
+  $('admin-add-btn').textContent = '> ...'; $('admin-add-btn').disabled = true;
+  const { error } = await supabaseAdmin.auth.admin.createUser({ email, password, email_confirm: true });
+  $('admin-add-btn').textContent = '> AÑADIR'; $('admin-add-btn').disabled = false;
+  if (error) { err.textContent = '> ' + error.message; show(err); return; }
+  $('admin-email').value = ''; $('admin-pass').value = '';
+  flash('USUARIO CREADO', 'success');
+  await loadAdminUsers();
+});
+
+async function adminBan(userId) {
+  if (!confirm('¿BANEAR ESTE USUARIO POR 24 HORAS?')) return;
+  const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, { ban_duration: '24h' });
+  if (error) { flash('ERROR: ' + error.message, 'error'); return; }
+  flash('USUARIO BANEADO 24H', 'success');
+  await loadAdminUsers();
+}
+
+async function adminUnban(userId) {
+  const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, { ban_duration: 'none' });
+  if (error) { flash('ERROR: ' + error.message, 'error'); return; }
+  flash('USUARIO DESBANEADO', 'success');
+  await loadAdminUsers();
+}
+
+async function adminDelete(userId, email) {
+  if (!confirm('¿ELIMINAR A ' + email + '? ESTO NO SE PUEDE DESHACER.')) return;
+  const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
+  if (error) { flash('ERROR: ' + error.message, 'error'); return; }
+  flash('USUARIO ELIMINADO', 'success');
+  await loadAdminUsers();
 }
 
 // ==================== GAMES LIST ====================

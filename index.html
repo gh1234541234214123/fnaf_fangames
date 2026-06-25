@@ -611,6 +611,7 @@ $('admin-add-btn').addEventListener('click', async () => {
 });
 
 async function adminBan(userId) {
+  if (userId === currentUser.id) { flash('NO PUEDES BANEARTE A TI MISMO', 'error'); return; }
   if (!confirm('¿BANEAR ESTE USUARIO POR 24 HORAS?')) return;
   const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, { ban_duration: '24h' });
   if (error) { flash('ERROR: ' + error.message, 'error'); return; }
@@ -619,6 +620,7 @@ async function adminBan(userId) {
 }
 
 async function adminUnban(userId) {
+  if (userId === currentUser.id) { flash('NO PUEDES DESBANEARTE A TI MISMO', 'error'); return; }
   const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, { ban_duration: 'none' });
   if (error) { flash('ERROR: ' + error.message, 'error'); return; }
   flash('USUARIO DESBANEADO', 'success');
@@ -626,6 +628,7 @@ async function adminUnban(userId) {
 }
 
 async function adminDelete(userId, email) {
+  if (userId === currentUser.id) { flash('NO PUEDES ELIMINARTE A TI MISMO', 'error'); return; }
   if (!confirm('¿ELIMINAR A ' + email + '? ESTO NO SE PUEDE DESHACER.')) return;
   const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
   if (error) { flash('ERROR: ' + error.message, 'error'); return; }

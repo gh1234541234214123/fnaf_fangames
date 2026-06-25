@@ -117,8 +117,30 @@
     .dev-item span { font-family: 'Press Start 2P', cursive; font-size: 0.45rem; color: #0ff; }
 
     @media (max-width: 600px) {
-      .navbar-brand { font-size: 0.65rem; }
-      body { padding-top: 4rem; }
+      .navbar { padding: 0.4rem 0.6rem; flex-wrap: wrap; gap: 0.3rem; }
+      .navbar-brand { font-size: 0.55rem; }
+      .navbar-center { order: 3; width: 100%; justify-content: center; }
+      .navbar-center .nav-btn { font-size: 0.35rem; padding: 0.2rem 0.4rem; white-space: nowrap; }
+      .navbar-right { gap: 0.3rem; }
+      .navbar-user { font-size: 0.35rem; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .nav-btn { font-size: 0.35rem; padding: 0.25rem 0.4rem; }
+      body { padding-top: 5rem; gap: 1rem; padding-left: 0.5rem; padding-right: 0.5rem; }
+      .pixel-title { font-size: 1rem !important; }
+      .pixel-box { padding: 1rem !important; }
+      .pixel-card { max-width: 100% !important; min-width: 0 !important; flex: 1 1 100% !important; }
+      .game-card p { font-size: 0.4rem; }
+      .review-header { flex-direction: column; align-items: flex-start; gap: 0.3rem; }
+      .review-content { font-size: 0.4rem; }
+      .review-video a { word-break: break-all; }
+      .detail-icon { max-width: 60px; max-height: 60px; }
+      .admin-user { flex-direction: column; align-items: flex-start; }
+      .admin-user-actions { width: 100%; justify-content: flex-end; }
+      .admin-user-info { min-width: 0; width: 100%; }
+      .form-box { max-width: 100% !important; }
+      .flash-msg { font-size: 0.35rem; padding: 0.4rem 0.8rem; width: 90%; text-align: center; }
+      .empty-state { font-size: 0.4rem; padding: 1rem; }
+      .btn-sm { font-size: 0.4rem !important; padding: 0.3rem 0.6rem !important; }
+      .review-actions button { font-size: 0.35rem; padding: 0.2rem 0.4rem; }
     }
   </style>
 </head>
